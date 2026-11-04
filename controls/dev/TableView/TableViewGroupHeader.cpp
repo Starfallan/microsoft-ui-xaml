@@ -15,6 +15,15 @@ TableViewGroupHeader::TableViewGroupHeader()
 {
     SetDefaultStyleKey(this);
 
+    RegisterPropertyChangedCallback(winrt::UIElement::ContextFlyoutProperty(),
+        [weakThis = get_weak()](auto&&, auto&&)
+        {
+            if (auto const strongThis = weakThis.get())
+            {
+                strongThis->m_contextFlyoutOpeningRevoker = TableViewDetails::HookContextFlyoutSuppression(*strongThis);
+            }
+        });
+
     // Tab from another band must not land on a cache group header outside the viewport.
     m_gettingFocusRevoker = GettingFocus(
         winrt::auto_revoke,

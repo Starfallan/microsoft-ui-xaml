@@ -258,6 +258,7 @@ private:
     winrt::FrameworkElement::DataContextChanged_revoker m_dataContextChangedRevoker{};
     winrt::UIElement::ContextRequested_revoker m_cellsHostContextRequestedRevoker{};
     winrt::UIElement::ContextRequested_revoker m_templateRootContextRequestedRevoker{};
+    winrt::FlyoutBase::Opening_revoker m_contextFlyoutOpeningRevoker{};
     winrt::Control::IsEnabledChanged_revoker m_isEnabledChangedRevoker{};
     winrt::UIElement::GettingFocus_revoker m_gettingFocusRevoker{};
     winrt::UIElement::GotFocus_revoker m_gotFocusRevoker{};
