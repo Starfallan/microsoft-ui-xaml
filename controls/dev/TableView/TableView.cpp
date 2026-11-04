@@ -1152,10 +1152,14 @@ void TableView::OnRowsRepeaterLoaded(const winrt::IInspectable& /*sender*/, cons
             // Viewport resize (ViewChanged only covers scroll/zoom) must rerun table-level measure
             // so Star widths resolve after the subtree has refreshed its measured-width caches.
             m_bodyScrollerSizeChangedRevoker = bodyScroller.SizeChanged(winrt::auto_revoke,
-                [weakThis](winrt::IInspectable const& /*sender*/, winrt::SizeChangedEventArgs const& /*args*/)
+                [weakThis](winrt::IInspectable const& /*sender*/, winrt::SizeChangedEventArgs const& args)
                 {
                     if (auto strongThis = weakThis.get())
                     {
+                        if (args.NewSize().Width != args.PreviousSize().Width)
+                        {
+                            strongThis->ExpireLockedColumnHolds();
+                        }
                         strongThis->InvalidateMeasure();
                         strongThis->RefreshFrozenColumns();
                         strongThis->QueueTerminalGridLineRefresh();
@@ -3879,7 +3883,7 @@ bool TableView::ApplyColumnResizeDrag(TableView* owner, const winrt::TableViewCo
     auto const columnImpl = winrt::get_self<TableViewColumn>(col);
     if (!state.didWrite && owner)
     {
-        owner->FreezeColumnsBeforeResize(col, state.frozen);
+        owner->FreezeColumnsBeforeResize(col, state);
     }
     auto const resizeScope = columnImpl->BeginUserResizeScope();
     col.Width(winrt::GridLengthHelper::FromPixels(next));
@@ -3942,6 +3946,7 @@ winrt::ResizeGripper TableView::CreateResizeGripper(
         state->didWrite = false;
         state->didDelta = false;
         state->frozen.clear();
+        state->lockedHoldsBefore.reset();
         state->lastPressTimestamp = 0;
         state->commitPixelWidth = false;
 
@@ -4013,6 +4018,13 @@ winrt::ResizeGripper TableView::CreateResizeGripper(
 
         if (cargs.Canceled())
         {
+            // Before the widths below: restoring them runs app code that may end the holds again.
+            if (strongThis && state->lockedHoldsBefore)
+            {
+                std::tie(strongThis->m_lockedColumnHolds, strongThis->m_lockedColumnHoldsSignature) = std::move(*state->lockedHoldsBefore);
+                strongThis->InvalidateMeasure();
+            }
+
             // Only when a write actually happened, so a press that never moved cannot pin an
             // Auto/Star column.
             // Non-empty only when a freeze actually ran, so this needs no didWrite gate: a write
@@ -4330,5 +4342,6 @@ void TableView::OnCanUserResizeColumnsPropertyChanged(const winrt::DependencyPro
         return;
     }
 
+    ExpireLockedColumnHolds();
     RebuildHeaders();
 }
