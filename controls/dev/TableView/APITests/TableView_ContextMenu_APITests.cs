@@ -634,6 +634,7 @@ namespace Microsoft.UI.Xaml.Tests.MUXControls.ApiTests
             var f = LoadEditableFixture(configure: x =>
             {
                 other = new Button { Content = "Other owner", ContextFlyout = x.RowMenu };
+                x.Root.Child = null;
                 x.Root.Child = new StackPanel { Children = { x.Table, other } };
             });
             bool veto = true;
